@@ -1,15 +1,15 @@
-import { Router } from 'express';
-// import { register, login } from '../controllers/authController';
-// import { validateRegister, validateLogin } from '../middlewares/validation';
-import { RequestHandler } from 'express';
-import { validateLogin, validateRegister } from '../validation/authValidation';
-import { login, register } from '../controller/authController';
 
-const  router = Router();
 
-// Cast the validation and route handler as an array of RequestHandler[]
-router.post('/register', [...validateRegister as RequestHandler[], register as RequestHandler]);
+import {  Router,Request, Response,NextFunction } from 'express';
+import { loginUser, userRegister } from '../controller/authController';
+// import { authenticateJWT } from '../middleware/authMiddleware';
+// import { Request, Response,NextFunction } from 'express';
+const router = Router();
 
-router.post('/login', [...validateLogin as RequestHandler[], login as RequestHandler]);
+router.post('/register', userRegister);
+router.post('/login', loginUser);
 
 export default router;
+
+
+

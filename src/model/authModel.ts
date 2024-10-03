@@ -1,52 +1,59 @@
-import mongoose, { model, Model, Schema, Document } from "mongoose";
-import bcrypt from "bcrypt";
+// import mongoose, { model, Model, Schema } from "mongoose";
+// import bcrypt from "bcrypt";
+// import UserSI, { UserI } from "../interface/authInterface";
+// import ModelI from "../interface/ModelInterface";
 
-// Interface for the user model
-interface UserDocument extends Document {
-  username: string;
-  email: string;
-  password: string;
-  comparePassword(candidatePassword: string): Promise<boolean>;
-}
+// // Define the schema
+// export default class userModel implements ModelI {
+//   schema: Schema <any> = new Schema (
+//     {
+//       username: {
+//         type:String,
+//         require: true
+//       },
+//       email:{
+//         type: String,
+//         require: true,
+//         unique: true
+//       },
+//       password: {
+//         type: String,
+//         require: true
+//       }
+//     }
+    
+// )
+// model:Model<any, any> = model <UserSI> ("Authenticate",this.schema);
+//   static findOne: any;
+// };
+
+import mongoose, { model, Schema, Model, Document } from "mongoose";
+import bcrypt from "bcrypt";
+import { UserI } from "../interface/authInterface";
 
 // Define the schema
-const userSchema = new Schema<UserDocument>({
+const userSchema = new Schema({
   username: {
     type: String,
-    required: true
+    required: true,
   },
   email: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
   },
   password: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
-// Middleware to hash password before saving
-userSchema.pre('save', async function (next) {
-  const user = this as UserDocument;
-
-  if (!user.isModified('password')) {
-    return next();
-  }
-
-  const salt = await bcrypt.genSalt(10);
-  user.password = await bcrypt.hash(user.password, salt);  // Use await to handle the async function properly
-
-  next();
-});
-
-// Method to compare passwords
-userSchema.methods.comparePassword = async function (
-  candidatePassword: string
-): Promise<boolean> {
-  return bcrypt.compare(candidatePassword, this.password);
+// Add static methods directly to the schema if needed
+userSchema.methods.isValidPassword = async function (password: string) {
+  return await bcrypt.compare(password, this.password);
 };
 
-// Create and export the model
-const User = model<UserDocument>("User", userSchema);
-export default User;
+// Create the model
+const UserModel: Model<UserI> = model<UserI>("User1", userSchema);
+
+export default UserModel;

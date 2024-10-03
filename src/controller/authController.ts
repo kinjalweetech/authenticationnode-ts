@@ -1,44 +1,69 @@
-import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
-import User from '../model/authModel';
 
-// JWT secret from environment
-const JWT_SECRET = process.env.JWT_SECRET || 'yoursecretkey';
+import userModel from "../model/authModel";
+import { Request, Response } from "express";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import UserModel from "../model/authModel";
+import { saltRoundConfigVar } from "../Configration/Config";
 
-// Register a new user
-export const register = async (req: Request, res: Response): Promise<void> => {
+export const userRegister = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { name, email, password } = req.body;
+
+  
   try {
-    const { username, email, password } = req.body;
-    
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-     res.status(400).json({ message: 'User already exists' });
-     return
+    // Check if the user already exists
+    let user = await UserModel.findOne({ email });
+    if (user) {
+      res.status(400).json({ msg: "User already exists" });
+      return;
     }
 
-    const user = new User({ username, email, password });
+    // Hash the password
+    const salt = await bcrypt.genSalt(saltRoundConfigVar); // using config variable for salt
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create new user
+    user = new UserModel({ username: name, email, password: hashedPassword }); // Use correct model name
     await user.save();
-    res.status(201).json({ message: 'User registered successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+
+    // Generate JWT token
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_KEY!, {
+      expiresIn: "1h",
+    });
+
+    res.status(201).json({ token });
+  } catch (err) {
+    console.error(err); // Log the error
+    res.status(500).send("Server error");
   }
 };
-
-// Login an existing user
-export const login = async (req: Request, res: Response):Promise<void> => {
+export const loginUser = async (req: Request, res: Response): Promise<void> => {
+  const { email, password } = req.body;
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    
-    if (!user || !(await user.comparePassword(password))) {
-      res.status(400).json({ message: 'Invalid credentials' });
-      return
+    // Find the user by email
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      res.status(400).json({ msg: "Invalid credentials" });
+      return;
     }
 
-    // Generate JWT
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1h' });
-    res.status(200).json({ token });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    // Check the password
+    const isMatch = bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      res.status(400).json({ msg: "Invalid credentials" });
+      return;
+    }
+
+    // Generate JWT token
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_KEY!, {
+      expiresIn: "1h",
+    });
+
+    res.json({ token });
+  } catch (err) {
+    res.status(500).send("Server error");
   }
 };
